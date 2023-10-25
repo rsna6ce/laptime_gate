@@ -39,7 +39,7 @@ typedef struct laptime_ {
   uint32_t lap_ms;
 } laptime;
 
-#define LAPTIME_COUNT_MAX 100
+#define LAPTIME_COUNT_MAX 99
 laptime laptime_list[LAPTIME_COUNT_MAX] = {0};
 uint32_t laptime_count = 0;
 
@@ -119,13 +119,13 @@ void setup() {
     pinMode(INNER_LED, OUTPUT);
     digitalWrite(INNER_LED, LOW);
 
-    display7seg.setBrightness(0x0f);
+    display7seg.setBrightness(0x02);
 
     lcd.begin();
     lcd.clear();
     lcd.backlight();
     lcd.setCursor(0, 0);
-    lcd.print(ConvStr("LAPTIME GATE Ver0.1"));
+    lcd.print(ConvStr("LAPTIME GATE Ver0.9"));
     lcd.setCursor(0, 1);
     lcd.print(ConvStr("　"));
     lcd.setCursor(0, 2);
@@ -170,6 +170,7 @@ void loop2(void * params) {
     uint32_t millis_lap_started = 0;
     uint32_t millis_tail_started = 0;
     uint32_t millis_laptime_hold = 0;
+    uint32_t latest_lap_ms = 0;
     while (true) {
         ir_prev = ir_curr;
         ir_curr = digitalRead(PIN_IR);
@@ -183,11 +184,13 @@ void loop2(void * params) {
                     laptime_list[laptime_index].count = laptime_index + 1;
                     laptime_list[laptime_index].time_ms = (uint32_t)(millis_curr-millis_run_started);
                     laptime_list[laptime_index].lap_ms = (uint32_t)(millis_curr-millis_lap_started);
+                    latest_lap_ms = (uint32_t)(millis_curr-millis_lap_started);
                     laptime_count++;
                     if (LAPTIME_COUNT_MAX <= laptime_count) {
                         // overflow finish
                         state_mode = state_stop;
-                        cursor_lap_index = laptime_count;
+                        cursor_lap_index = laptime_count-1;
+                        display_lcd_lap_record(cursor_lap_index);
                     }
                     millis_lap_started = millis_curr;
                     millis_laptime_hold = millis_curr + laptime_hold_time;
@@ -197,6 +200,8 @@ void loop2(void * params) {
             }
             if (millis_laptime_hold < millis_curr) {
                 count_for_display = (uint32_t)(millis_curr-millis_lap_started)/10;
+            } else {
+                count_for_display = latest_lap_ms / 10;
             }
         } else if ( state_mode == state_ready) {
             if (ir_prev==IR_NODETECT && ir_curr == IR_DETECTED) {
@@ -290,9 +295,9 @@ void loop() {
                 lcd.setCursor(0, 1);
                 lcd.print(ConvStr(" "));
                 lcd.setCursor(0, 2);
-                lcd.print(ConvStr("ｹﾞｰﾄﾂｳｶﾃﾞ"));
+                lcd.print(ConvStr("ｹﾞｰﾄ ｦ ﾂｳｶ ｽﾙﾄ"));
                 lcd.setCursor(0, 3);
-                lcd.print(ConvStr("ｼﾞﾄﾞｳｹｲｿｸｶｲｼｼﾏｽ"));
+                lcd.print(ConvStr("ｼﾞﾄﾞｳｹｲｿｸ ｶｲｼ ｼﾏｽ"));
             }
         }
     } else {
@@ -328,6 +333,8 @@ void loop() {
     if (digitalRead(PIN_DOWN)==BUTTON_DOWN) {
         if (++button_count_down == button_count_detect) {
             if (state_mode == state_stop) {
+                Serial.print("cursor_lap_index"); Serial.println(cursor_lap_index);
+                Serial.print("laptime_count"); Serial.println(laptime_count);
                 if (4 <= cursor_lap_index) {
                     cursor_lap_index -= 4;
                 }
