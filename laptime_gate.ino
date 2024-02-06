@@ -1,8 +1,4 @@
 #include "esp_system.h"
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
 #include <TM1637Display.h> //TM1637 by Avishay Orpaz ver1.2.0
 #include <LCD_I2C.h>
 
